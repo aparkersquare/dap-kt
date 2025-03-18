@@ -7,29 +7,29 @@
   <version>0.0.0-main-SNAPSHOT</version>
   <name>DAP SDK</name>
   <description>Decentralized Agnostic Paytag SDK for JVM</description>
-  <url>https://github.com/TBD54566975/dap</url>
+  <url>https://github.com/aparkersquare/dap</url>
   <inceptionYear>2024</inceptionYear>
 
   <scm>
-    <connection>scm:git:git://github.com/TBD54566975/dap-kt.git</connection>
+    <connection>scm:git:git://github.com/aparkersquare/dap-kt.git</connection>
     <!-- This has to be HTTPS, not git://, for maven-release-plugin to do AUTH correctly -->
-    <developerConnection>scm:git:https://github.com/TBD54566975/dap-kt.git</developerConnection>
-    <url>https://github.com/TBD54566975/dap-kt</url>
+    <developerConnection>scm:git:https://github.com/aparkersquare/dap-kt.git</developerConnection>
+    <url>https://github.com/aparkersquare/dap-kt</url>
     <tag>HEAD</tag>
   </scm>
 
   <developers>
     <developer>
-      <id>TBD54566975</id>
-      <name>Block, Inc.</name>
-      <email>releases@tbd.email</email>
+      <id>aparkersquare</id>
+      <name>Andrew Parker</name>
+      <email>aparker@block.xyz</email>
     </developer>
   </developers>
 
   <!-- Issues -->
   <issueManagement>
     <system>github</system>
-    <url>https://github.com/TBD54566975/dap-kt/issues</url>
+    <url>https://github.com/aparkersquare/dap-kt/issues</url>
   </issueManagement>
 
   <!-- Licenses -->
@@ -74,6 +74,12 @@
       <groupId>xyz.block</groupId>
       <artifactId>web5-dids</artifactId>
       <version>1.1.2</version>
+    </dependency>
+
+    <dependency>
+      <groupId>app.cash.nostrino</groupId>
+      <artifactId>nostr-sdk</artifactId>
+      <version>0.0.6</version>
     </dependency>
 
     <!-- Kotlin -->
