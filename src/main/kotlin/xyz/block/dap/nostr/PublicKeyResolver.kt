@@ -26,6 +26,14 @@ import java.io.File
 import java.net.InetAddress
 import java.net.URL
 
+// This uses a modified version of the scheme used in web5-kt to provide customization
+// of the configuration (see `DidWeb`).
+// The difference is that we provide two overloaded functions for constructing the resolver,
+// which look like two overloaded constructors to the caller.
+// This is instead of a single function and the use of the `Default` companion object.
+// We also don't need to expose both a `PublicKeyResolver` and `PublicKeyResolverApi`.
+// This is probably still too complicated.
+
 /**
  * A PublicKeyResolver with the default configuration.
  */
@@ -47,18 +55,24 @@ private class PublicKeyResolverImpl(
 ) : PublicKeyResolver(configuration)
 
 /**
- * This resolves a NIP-05 to the PukKey, using nostrino.
  * This is part of the DAP resolution process.
+ * See [DapResolver] for the full resolution process.
  * See the [DAP spec](https://github.com/TBD54566975/dap#resolution)
  *
  * NOTE: This is a fork that implements DAPs on [nostr](https://nostr.org).
- *
- * Any errors in the process will throw a [PublicKeyResolutionException].
  */
 sealed class PublicKeyResolver(
   configuration: PublicKeyResolverConfiguration
 ) {
-
+  /**
+   * This resolves a DAP to the nostr PukKey.
+   * The process is
+   * - the DAP is mapped to the equivalent NIP-05
+   * - request the JSON according to [NIP-05 ](https://github.com/nostr-protocol/nips/blob/master/05.md)
+   * - extract the public key for the matching name from the response
+   *
+   * Any errors in the process will throw a [PublicKeyResolutionException].
+   */
   fun resolvePublicKey(dap: Dap): PubKey {
     val fullUrl = URL("https://${dap.domain}/.well-known/nostr.json?name=${dap.handle}")
 
@@ -69,7 +83,10 @@ sealed class PublicKeyResolver(
         }
       }
     } catch (e: Throwable) {
-      throw PublicKeyResolutionException("Error fetching the NIP-05 [dap=$dap][url=$fullUrl][error=${e.message}]", e)
+      throw PublicKeyResolutionException(
+        "Error fetching the NIP-05 [dap=$dap][url=$fullUrl][error=${e.message}]",
+        e
+      )
     }
 
     val body = runBlocking { resp.bodyAsText() }
@@ -81,10 +98,14 @@ sealed class PublicKeyResolver(
     val nip05Response = try {
       mapper.readValue(body, NostrNip05Response::class.java)
     } catch (e: Throwable) {
-      throw PublicKeyResolutionException("Failed to parse NIP-05 response [dap=$dap][url=$fullUrl][error=${e.message}]", e)
+      throw PublicKeyResolutionException(
+        "Failed to parse NIP-05 response [dap=$dap][url=$fullUrl][error=${e.message}]",
+        e
+      )
     }
 
-    val maybeNip05 = nip05Response.names.filter { it.key == dap.handle }.map { it.value }.firstOrNull()
+    val maybeNip05 =
+      nip05Response.names.filter { it.key == dap.handle }.map { it.value }.firstOrNull()
     if (maybeNip05 == null) {
       throw PublicKeyResolutionException("NIP-05 response does not have matching name [dap=$dap][url=$fullUrl]")
     } else {

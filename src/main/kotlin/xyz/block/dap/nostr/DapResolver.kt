@@ -1,7 +1,9 @@
 package xyz.block.dap.nostr
 
+import app.cash.nostrino.crypto.PubKey
 import xyz.block.dap.Dap
 import xyz.block.moneyaddress.MoneyAddress
+import xyz.block.moneyaddress.nostr.MoneyAddressResolver
 
 /**
  * Resolves a Decentralized Agnostic Paytag (DAP).
@@ -19,12 +21,14 @@ class DapResolver {
    * Resolves the money addresses for a DAP.
    *
    * @param dap the DAP to resolve
-   * @return the list of money addresses for the DAP
+   * @return a pair of
+   *  - the nostr PubKey for the DAP
+   *  - the list of money addresses for the nostr PubKey
    */
-  fun resolveMoneyAddresses(dap: Dap): List<MoneyAddress> {
+  fun resolveMoneyAddresses(dap: Dap): Pair<PubKey, List<MoneyAddress>> {
     val pubKey = publicKeyResolver.resolvePublicKey(dap)
     // TODO - validate the Kind 0 for the PubKey uses the same NIP-05
     val moneyAddresses = moneyAddressResolver.resolveMoneyAddresses(pubKey)
-    return moneyAddresses
+    return pubKey to moneyAddresses
   }
 }
