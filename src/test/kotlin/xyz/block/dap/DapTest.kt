@@ -7,18 +7,6 @@ import kotlin.test.assertEquals
 class DapTest {
 
   @Test
-  fun testDapToString() {
-    val dap = Dap("handle", "domain.com")
-    assertEquals("@handle/domain.com", dap.toString())
-  }
-
-  @Test
-  fun testDapToWebDid() {
-    val dap = Dap("handle", "domain.com")
-    assertEquals("did:web:${dap.domain}", dap.toWebDid())
-  }
-
-  @Test
   fun testParseDap() {
     val dap = Dap.parse("@handle/domain.com")
     assertEquals("handle", dap.handle)
@@ -26,15 +14,36 @@ class DapTest {
   }
 
   @Test
+  fun testDapToString() {
+    val dap = Dap("handle", "domain.com")
+    assertEquals("@handle/domain.com", dap.toString())
+  }
+
+  @Test
+  fun testDapToNip05() {
+    val dap = Dap("handle", "domain.com")
+    assertEquals("handle@domain.com", dap.toNip05())
+  }
+
+  @Test
   fun testParseValidDaps() {
     val validDaps = listOf(
-      "@123/domain.com", // min length 3
-      "@123456789012345678901234567890/domain.com", // max length 30
-      "@a-b/domain.com",
-      "@a_b/domain.com",
+      "@abc/domain.com",
+      "@ABC/domain.com",
+      "@AbC/domain.com",
+      "@123/domain.com",
+      "@a_b/domain.com", // '_' is allowed
+      "@a.b/domain.com", // '.' is allowed
+      "@a/domain.com", // short names are allowed
+      "@A/domain.com", // short names are allowed
+      "@1234567890123456789012345678901234567890/domain.com", // long names are allowed
     )
     validDaps.forEach { dap ->
-      Dap.parse(dap)
+      try {
+        Dap.parse(dap)
+      } catch (e: InvalidDapException) {
+        throw AssertionError("expect [$dap] to be valid")
+      }
     }
   }
 
@@ -45,8 +54,6 @@ class DapTest {
       "a",
       "@handle",
       "@handle/",
-      "@ha/domain.com", // handle too short
-      "@1234567890123456789012345678901/domain.com", // handle too long
       "@handle@/domain.com",
       "@handle@handle/domain.com",
       "@handle//domain.com",
@@ -55,6 +62,7 @@ class DapTest {
       "@handle/domain.com@",
       "@handle/domain.com/",
       "@handle/domain.com/extra-stuff",
+      "@a-b/domain.com", // '-' not allowed
     )
     for (dap in invalidDaps) {
       val exception = assertThrows<InvalidDapException>("expect [$dap] to be invalid") {
