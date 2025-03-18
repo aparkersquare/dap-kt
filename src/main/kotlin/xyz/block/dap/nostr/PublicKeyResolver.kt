@@ -1,7 +1,50 @@
 package xyz.block.dap.nostr
 
 import app.cash.nostrino.crypto.PubKey
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import io.github.oshai.kotlinlogging.KotlinLogging
+import io.ktor.client.HttpClient
+import io.ktor.client.engine.HttpClientEngine
+import io.ktor.client.engine.okhttp.OkHttp
+import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.client.request.get
+import io.ktor.client.statement.HttpResponse
+import io.ktor.client.statement.bodyAsText
+import io.ktor.http.ContentType
+import io.ktor.http.contentType
+import io.ktor.http.isSuccess
+import io.ktor.serialization.jackson.jackson
+import kotlinx.coroutines.runBlocking
+import okhttp3.Cache
+import okhttp3.HttpUrl.Companion.toHttpUrl
+import okhttp3.OkHttpClient
+import okhttp3.dnsoverhttps.DnsOverHttps
+import okio.ByteString.Companion.toByteString
+import web5.sdk.common.Json
+import xyz.block.dap.Dap
+import java.io.File
+import java.net.InetAddress
+import java.net.URL
+
+/**
+ * A PublicKeyResolver with the default configuration.
+ */
+fun PublicKeyResolver(): PublicKeyResolver = PublicKeyResolver.default
+
+/**
+ * Constructs a PublicKeyResolver with the block configuration applied.
+ */
+fun PublicKeyResolver(
+  blockConfiguration: PublicKeyResolverConfiguration.() -> Unit
+): PublicKeyResolver {
+  val config = PublicKeyResolverConfiguration().apply(blockConfiguration)
+  return PublicKeyResolverImpl(config)
+}
+
+// This allows the PublicKeyResolver to be sealed
+private class PublicKeyResolverImpl(
+  configuration: PublicKeyResolverConfiguration
+) : PublicKeyResolver(configuration)
 
 /**
  * This resolves a NIP-05 to the PukKey, using nostrino.
@@ -10,21 +53,97 @@ import io.github.oshai.kotlinlogging.KotlinLogging
  *
  * NOTE: This is a fork that implements DAPs on [nostr](https://nostr.org).
  *
- * Any errors in the process will throw a [PubKeyResolutionException].
+ * Any errors in the process will throw a [PublicKeyResolutionException].
  */
-class PublicKeyResolver {
+sealed class PublicKeyResolver(
+  configuration: PublicKeyResolverConfiguration
+) {
 
-  fun resolvePublicKey(nip05: String): PubKey {
-    TODO()
+  fun resolvePublicKey(dap: Dap): PubKey {
+    val fullUrl = URL("https://${dap.domain}/.well-known/nostr.json?name=${dap.handle}")
+
+    val resp: HttpResponse = try {
+      runBlocking {
+        client.get(fullUrl) {
+          contentType(ContentType.Application.Json)
+        }
+      }
+    } catch (e: Throwable) {
+      throw PublicKeyResolutionException("Error fetching the NIP-05 [dap=$dap][url=$fullUrl][error=${e.message}]", e)
+    }
+
+    val body = runBlocking { resp.bodyAsText() }
+
+    if (!resp.status.isSuccess()) {
+      throw PublicKeyResolutionException("Error reading NIP-05 response [dap=$dap][url=$fullUrl][status=${resp.status}]")
+    }
+
+    val nip05Response = try {
+      mapper.readValue(body, NostrNip05Response::class.java)
+    } catch (e: Throwable) {
+      throw PublicKeyResolutionException("Failed to parse NIP-05 response [dap=$dap][url=$fullUrl][error=${e.message}]", e)
+    }
+
+    val maybeNip05 = nip05Response.names.filter { it.key == dap.handle }.map { it.value }.firstOrNull()
+    if (maybeNip05 == null) {
+      throw PublicKeyResolutionException("NIP-05 response does not have matching name [dap=$dap][url=$fullUrl]")
+    } else {
+      return PubKey(maybeNip05.toByteArray().toByteString())
+    }
   }
-
-  private val logger = KotlinLogging.logger {}
 
   companion object {
+    /**
+     * A singleton PublicKeyResolver with the default configuration
+     */
+    internal val default: PublicKeyResolver by lazy {
+      PublicKeyResolverImpl(PublicKeyResolverConfiguration())
+    }
   }
+
+  private val engine: HttpClientEngine = configuration.engine ?: OkHttp.create {
+    val appCache = Cache(File("cacheDir", "okhttpcache"), 10 * 1024 * 1024)
+    val bootstrapClient = OkHttpClient.Builder().cache(appCache).build()
+
+    val dns = DnsOverHttps.Builder()
+      .client(bootstrapClient)
+      .url("https://dns.quad9.net/dns-query".toHttpUrl())
+      .bootstrapDnsHosts(
+        InetAddress.getByName("9.9.9.9"),
+        InetAddress.getByName("149.112.112.112")
+      )
+      .build()
+
+    val client = bootstrapClient.newBuilder().dns(dns).build()
+    preconfigured = client
+  }
+  private val client = HttpClient(engine) {
+    install(ContentNegotiation) {
+      jackson { mapper }
+    }
+  }
+
+  private val mapper = Json.jsonMapper
+
+  private val logger = KotlinLogging.logger {}
 }
 
-class PubKeyResolutionException : Throwable {
+@JsonIgnoreProperties(ignoreUnknown = true)
+data class NostrNip05Response(
+  val names: Map<String, String>,
+)
+
+/**
+ * Configuration options for the [PublicKeyResolver].
+ *
+ * - [engine] is used to override the ktor HTTP engine.
+ * The default HTTP engine uses [OkHttp] with [DnsOverHttps] and a 10MB cache.
+ */
+class PublicKeyResolverConfiguration internal constructor(
+  var engine: HttpClientEngine? = null
+)
+
+class PublicKeyResolutionException : Throwable {
   constructor(message: String, cause: Throwable?) : super(message, cause)
   constructor(message: String) : super(message)
 }

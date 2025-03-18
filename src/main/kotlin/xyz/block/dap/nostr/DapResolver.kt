@@ -22,7 +22,7 @@ class DapResolver {
    * @return the list of money addresses for the DAP
    */
   fun resolveMoneyAddresses(dap: Dap): List<MoneyAddress> {
-    val pubKey = publicKeyResolver.resolvePublicKey(dap.toNip05())
+    val pubKey = publicKeyResolver.resolvePublicKey(dap)
     // TODO - validate the Kind 0 for the PubKey uses the same NIP-05
     val moneyAddresses = moneyAddressResolver.resolveMoneyAddresses(pubKey)
     return moneyAddresses
