@@ -21,7 +21,7 @@ class PublicKeyResolverTest {
   @Test
   fun testResolvingPublicKeyFromNip05() {
     val publicKey = publicKeyResolver.resolvePublicKey(VALID_DAP)
-    assertEquals(VALID_PUBLIC_KEY, publicKey.key.utf8())
+    assertEquals(VALID_PUBLIC_KEY, publicKey.key.hex())
   }
 
   @Test

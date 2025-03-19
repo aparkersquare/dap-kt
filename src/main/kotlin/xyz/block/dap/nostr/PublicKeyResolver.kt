@@ -19,7 +19,7 @@ import okhttp3.Cache
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.OkHttpClient
 import okhttp3.dnsoverhttps.DnsOverHttps
-import okio.ByteString.Companion.toByteString
+import okio.ByteString.Companion.decodeHex
 import web5.sdk.common.Json
 import xyz.block.dap.Dap
 import java.io.File
@@ -75,6 +75,7 @@ sealed class PublicKeyResolver(
    */
   fun resolvePublicKey(dap: Dap): PubKey {
     val fullUrl = URL("https://${dap.domain}/.well-known/nostr.json?name=${dap.handle}")
+    logger.info { "fetching nostr pubkey from $fullUrl" }
 
     val resp: HttpResponse = try {
       runBlocking {
@@ -109,7 +110,9 @@ sealed class PublicKeyResolver(
     if (maybeNip05 == null) {
       throw PublicKeyResolutionException("NIP-05 response does not have matching name [dap=$dap][url=$fullUrl]")
     } else {
-      return PubKey(maybeNip05.toByteArray().toByteString())
+      val pubkey = PubKey(maybeNip05.decodeHex())
+      logger.info { "fetched nostr pubkey [${pubkey.npub}] from $fullUrl" }
+      return pubkey
     }
   }
 
