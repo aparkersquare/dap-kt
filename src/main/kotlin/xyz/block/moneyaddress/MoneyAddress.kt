@@ -1,6 +1,5 @@
 package xyz.block.moneyaddress
 
-import web5.sdk.dids.didcore.Service
 import xyz.block.moneyaddress.urn.DapUrn
 
 /**
@@ -21,22 +20,6 @@ data class MoneyAddress(
 
   companion object {
     const val KIND: String = "MoneyAddress"
-  }
-}
-
-/**
- * Extracts the MoneyAddress objects from a DID Service object.
- *
- * @throws InvalidMoneyAddressException if the service type is not "MoneyAddress".
- * @throws InvalidDapUrnException if the URN is not a valid DAP URN.
- */
-fun Service.toMoneyAddresses(): List<MoneyAddress> {
-  if (type != MoneyAddress.KIND) {
-    throw InvalidMoneyAddressException
-  }
-
-  return serviceEndpoint.map { endpoint ->
-    DapUrn.parse(endpoint).toMoneyAddress(id)
   }
 }
 

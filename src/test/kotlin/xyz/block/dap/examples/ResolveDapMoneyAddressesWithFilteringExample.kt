@@ -1,23 +1,23 @@
 package xyz.block.dap.examples
 
 import xyz.block.dap.Dap
-import xyz.block.dap.DapResolver
+import xyz.block.dap.nostr.DapResolver
 import kotlin.test.assertEquals
 
 fun main(args: Array<String>) {
-  val dapString = if (args.isNotEmpty()) { args[0] } else { "@example/didpay.me" }
+  val dapString = if (args.isNotEmpty()) { args[0] } else { "@aparker/block.xyz" }
   try {
     val dap = Dap.parse(dapString)
-    val moneyAddresses = DapResolver().resolveMoneyAddresses(dap)
+    val (_, moneyAddresses) = DapResolver().resolveMoneyAddresses(dap)
     println("Resolved money addresses for $dap: $moneyAddresses")
 
     // filter by Currency and Protocol
-    val btcOnChainAddresses = moneyAddresses
+    val btcLightningAddresses = moneyAddresses
       .filter { it.currency == "btc" }
-      .filter { it.protocol == "addr" }
-    if (btcOnChainAddresses.isNotEmpty()) {
-      println("  found ${btcOnChainAddresses.count()} BTC on-chain addresses")
-      btcOnChainAddresses.forEach {
+      .filter { it.protocol == "lnaddr" }
+    if (btcLightningAddresses.isNotEmpty()) {
+      println("  found ${btcLightningAddresses.count()} BTC lightning addresses")
+      btcLightningAddresses.forEach {
         println("    $it")
         assertEquals("btc", it.currency)
         assertEquals("addr", it.protocol)

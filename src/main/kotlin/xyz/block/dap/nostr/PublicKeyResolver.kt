@@ -80,6 +80,7 @@ sealed class PublicKeyResolver(
     val resp: HttpResponse = try {
       runBlocking {
         client.get(fullUrl) {
+          // TODO - replace this web5 Json object
           contentType(ContentType.Application.Json)
         }
       }
