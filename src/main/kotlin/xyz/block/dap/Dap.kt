@@ -22,6 +22,7 @@ data class Dap(
     return "$PREFIX$handle$SEPARATOR$domain"
   }
 
+  // DELETE
   /**
    * Transform the DAP to the web DID format, used for DAP resolution.
    */
@@ -29,12 +30,20 @@ data class Dap(
     return "did:web:${domain}"
   }
 
+  /**
+   * Transform the DAP to the NIP-05 equivalent.
+   */
+  fun toNip05(): String {
+    return "$handle@$domain"
+  }
+
   companion object {
     const val PREFIX = "@"
     const val SEPARATOR = "/"
+    private const val CHARS = "[a-zA-Z0-9_.]+"
 
     private const val DAP_REGEX =
-      """^$PREFIX([^$PREFIX$SEPARATOR]{3,30})$SEPARATOR([^$PREFIX$SEPARATOR]+)$"""
+      """^$PREFIX($CHARS)$SEPARATOR($CHARS+)$"""
     private val DAP_PATTERN = Pattern.compile(DAP_REGEX)
 
     /**

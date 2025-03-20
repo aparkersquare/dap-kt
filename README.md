@@ -1,8 +1,9 @@
 # Kotlin SDK for DAPs
 
 This repository contains the Kotlin SDK for [DAPs (Decentralized Agnostic Paytags)](https://github.com/TBD54566975/dap).
-This is built on the [Kotlin SDK for Web5](https://github.com/TBD54566975/web5-kt),
-and provides data classes to represent `DAP`s and `MoneyAddress`es, as well as an implementaion of the "DAP resolution" process via a `DapResolver` to resolve the money addresses for a given DAP.
+This provides data classes to represent `DAP`s and `MoneyAddress`es, as well as an implementaion of the "DAP resolution" process via a `DapResolver` to resolve the money addresses for a given DAP.
+
+NOTE: This is a fork that implements DAPs on [nostr](https://nostr.org).
 
 ## Table of Contents
 
